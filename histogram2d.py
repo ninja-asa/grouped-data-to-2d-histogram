@@ -27,9 +27,9 @@ class Histogram2DContourSettings(object):
     contour_show_lines: bool = True
     normalized : bool = True
     
-    def get_z_colorbar_label(self) -> Literal['Frequency'] | Literal['Count']:
+    def get_z_colorbar_label(self):
         if self.normalized:
-            return 'Frequency'
+            return "Percentage"
         else:
             return 'Count'
 
@@ -48,8 +48,8 @@ class Histogram2DContourSettings(object):
             y = df[self.y_axis_title],
             colorscale = self.colorscale,
             contours = self.contours,
-            # zmin=self.count_min,
-            # zmax=self.count_max,
+            zmin=self.count_min,
+            zmax=self.count_max,
             xbins=dict(
                 start=self.min_area - self.area_bin_size,
                 end=self.max_area,
@@ -59,20 +59,21 @@ class Histogram2DContourSettings(object):
                 start=self.min_intensity - self.intensity_bin_size,
                 end=self.max_intensity,
                 size=self.intensity_bin_size
+            ),
+            colorbar=dict(
+                title=self.get_z_colorbar_label(),
+                ticksuffix='%'
             )
-
         )
         
         return hist_data
 
     def create_frequency_histogram2dcontour(self, 
                                   df: pd.DataFrame):
-        # create a pandas series with the same length as the dataframe, but with the same value, 100/len(df)
-        # this is to create a frequency histogram
+
         hist_data = go.Histogram2dContour(
             x = df[self.x_axis_title],
             y = df[self.y_axis_title],
-            # z = df_frequency,
             colorscale = self.colorscale,
             contours = self.contours,
             histnorm='percent',
@@ -87,8 +88,11 @@ class Histogram2DContourSettings(object):
                 start=self.min_intensity - self.intensity_bin_size,
                 end=self.max_intensity,
                 size=self.intensity_bin_size
+            ),
+            colorbar=dict(
+                title=self.get_z_colorbar_label(),
+                ticksuffix='%'
             )
-
         )
         
         return hist_data
