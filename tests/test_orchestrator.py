@@ -93,9 +93,8 @@ def test_get_sub_dfs(sample_raw_df, sample_orchestrator, no_groups_sample_raw_df
 def test_cleanup_group_df(sample_orchestrator):
     # Create a sample dataframe
     data = {
-        'A': ["F1", 2, 3, 4, 5],
-        'B': ["F1", 2, 3, 4, 5],
-        'C': ["F1", 2, 3, 4, 5],
+        'A': ["F1", 1, 2, 3, 4, 5],
+        'B': ["F2", 1, 2, 3, 4, 5]
     }
     df = pd.DataFrame(data)
 
@@ -106,7 +105,7 @@ def test_cleanup_group_df(sample_orchestrator):
     assert len(cleaned_df) == len(df) - 1
 
     # Assert column names are F1, and not A, B, C
-    assert cleaned_df.columns.tolist() == ['F1']*3
+    assert cleaned_df.columns.tolist() == ['F1', 'F2']
 
 def test_cleanup_group_df_with_nan_and_numeric_string(sample_orchestrator):
     # Create a sample dataframe
@@ -124,6 +123,18 @@ def test_cleanup_group_df_with_nan_and_numeric_string(sample_orchestrator):
     # Assert column names are F1, and not A, B, C
     assert cleaned_df.columns.tolist() == ['F1']
 
+def test_cleanup_group_df_with_nonnumeric_string(sample_orchestrator):
+    # Create a sample dataframe
+    data = {
+        'A': ["F1", "F1", "3", "4", "5"],
+    }
+    df = pd.DataFrame(data)
+
+    with raises(Exception):
+        # Call the cleanup_group_df method
+        cleaned_df = sample_orchestrator.cleanup_group_df(df)
+
+   
 
 @patch('histogram2d.orchestrator.datetime')
 def test_prepare_outputs_folder(mock_datetime, sample_orchestrator):
