@@ -21,10 +21,13 @@ jobs:
         poetry install
     - name: Run tests
       run: poetry run pytest
+
     - name: Check Coverage
       run: | 
         poetry run coverage run -m pytest
         poetry run coverage xml
+        echo "COVERAGE_PERCENT=$(poetry run coverage report --format=total >> $GITHUB_ENV
+
     - name: Python Coverage
       uses: orgoro/coverage@v3.1
       with:
@@ -34,6 +37,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         # the coverage threshold for average over all files [0,1]
         thresholdAll: 0.7
+      
     - name: Dynamic Badges
       uses: Schneegans/dynamic-badges-action@v1.7.0
       with:
@@ -46,8 +50,8 @@ jobs:
         # The left text of the badge
         label: Coverage
         # The right text of the badge
-        message: 80 %
-        valColorRange: 80
+        message: ${{ env.COVERAGE_PERCENT }} %
+        valColorRange: ${{ env.COVERAGE_PERCENT }}
         maxColorRange: 100
         minColorRange: 0
         forceUpdate: true
