@@ -1,7 +1,7 @@
 from plotly.subplots import make_subplots
 from plotly.graph_objects import Figure
 import pandas as pd
-from histogram2d.histogram2d import Histogram2DContourSettings
+from histogram2d.builder import Histogram2DContourSettings
 from dataclasses import dataclass
 
 
@@ -25,7 +25,7 @@ class VisualizeSettings(object):
             numbers_rows += 1
         specs = [[{"type": "histogram2dcontour"}] * numbers_cols] * numbers_rows
         column_widths = [1, 1, 1]
-        row_heights = [1]*numbers_rows
+        row_heights = [1] * numbers_rows
 
         fig = make_subplots(
             rows=numbers_rows,
@@ -51,7 +51,9 @@ class VisualizeSettings(object):
             contours_showlines=settings_histogram.contour_show_lines,
         )
         # set size of plot
-        fig.update_layout(width=self.fig_suplots_width, height=self.fig_subplot_height_per_row*numbers_rows)
+        fig.update_layout(
+            width=self.fig_suplots_width, height=self.fig_subplot_height_per_row * numbers_rows
+        )
         fig.update_xaxes(title_text=settings_histogram.x_axis_title)
         fig.update_yaxes(title_text=settings_histogram.y_axis_title)
 

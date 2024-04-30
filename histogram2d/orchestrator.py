@@ -3,21 +3,20 @@ import os
 
 import pandas as pd
 from datetime import datetime
-import numpy as np 
 
-from histogram2d.histogram2d import Histogram2DContourSettings
+from histogram2d.builder import Histogram2DContourSettings
 from histogram2d.visualize import VisualizeSettings, Figure
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(
-                    level=logging.INFO,
-                    format='%(filename)s: '    
-                            '%(levelname)s: '
-                            '%(funcName)s(): '
-                            '%(lineno)d:\t'
-                            '%(message)s')
+    level=logging.INFO,
+    format="%(filename)s: " "%(levelname)s: " "%(funcName)s(): " "%(lineno)d:\t" "%(message)s",
+)
+
 
 class Orchestrator:
     MAX_FEATURE_COUNT = 2
+
     def __init__(
         self,
         histogram2d_settings: Histogram2DContourSettings = Histogram2DContourSettings(),
@@ -37,7 +36,7 @@ class Orchestrator:
             logger.setLevel(logging.INFO)
         self.output_folder = self.prepare_outputs_folder(root_folder=root_folder)
         return
-    
+
     @staticmethod
     def prepare_outputs_folder(root_folder):
         """
@@ -49,25 +48,23 @@ class Orchestrator:
         # get datetime now and create folder with that name, without milliseconds
         outputs_folder = os.path.join(outputs_folder, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
         if not os.path.exists(outputs_folder):
-            os.makedirs(outputs_folder)           
+            os.makedirs(outputs_folder)
         return outputs_folder
-    
+
     @classmethod
-    def get_groups_df(
-        cls, df: pd.DataFrame
-    ):
+    def get_groups_df(cls, df: pd.DataFrame):
         """
         Get the groups of the dataframe. The groups are identified by the merged cells in the excel file
 
         Args:
-            df (pd.DataFrame): dataframe, where the groups are identified by the merged cells. Whenever 
+            df (pd.DataFrame): dataframe, where the groups are identified by the merged cells. Whenever
                 there is a merged cell, pandas will set the first cell with the name of the group and the rest of the cells
                 will be named as "unnamed: x" where x is the index of the column
 
         Returns:
             list[pd.Dataframe]: list of dataframes, one per group
             list[str]: list of group names
-        
+
         Usage:
             >>> df = pd.read_excel("path_to_excel_file")
             >>> df.head(3)
@@ -127,8 +124,20 @@ class Orchestrator:
         # replace columns with the first row
         df.columns = df.iloc[0]
         # drop the first row
-
         df = df.drop([0])
+
+        # drop rows
+        df = df.dropna()
+
+        # If not numeric, try transforming to numeric
+        for column in df.columns:
+            try:
+                df[column] = pd.to_numeric(df[column])
+            except:
+                error_message = f"Could not convert column {column} to numeric"
+                logging.error(error_message)
+                raise ValueError(error_message)
+
         return df
 
     @staticmethod
@@ -156,15 +165,14 @@ class Orchestrator:
             logging.error(f"File {data_filepath} is not an excel or csv file")
             raise ValueError(f"File {data_filepath} is not an excel or csv file")
         return True
-        
 
     def read_data_from_file(self, data_filepath: str):
         """
         Read data from data file and return a list of dataframes
-        
+
         Args:
             data_filepath (str): path to excel or csv file
-            
+
         Returns:
             list[pd.DataFrame]: list of dataframes
             list[str]: list of group names
@@ -186,7 +194,7 @@ class Orchestrator:
         logging.debug(df.head(6))
 
         data_of_groups, groups_name = self.get_groups_df(df)
-        
+
         for df, group_name in zip(data_of_groups, groups_name):
             logging.debug(f">>>>>>{group_name}>>>>>>")
             logging.debug(df.describe())
@@ -217,7 +225,7 @@ class Orchestrator:
         """
         self.histogram2d_settings.x_axis_title = x_axis_title
         self.histogram2d_settings.y_axis_title = y_axis_title
-        
+
     def update_settings_with_max_min_feature_2(self, max_feature_2, min_feature_2):
         """
         Update the settings with the min and max intensity
@@ -238,7 +246,7 @@ class Orchestrator:
             ValueError: If the features do not exist in all dataframes
             ValueError: If the excel file does not have the expected format
         """
-        dfs , groups = self.read_data_from_file(data_filepath=excel_filepath)
+        dfs, groups = self.read_data_from_file(data_filepath=excel_filepath)
         if len(groups) == 0:
             logging.error("Did not obtain expected format of excel")
             raise ValueError("Did not obtain expected format of excel")
@@ -248,7 +256,7 @@ class Orchestrator:
         logging.info(f"Features to be used: {features}")
 
         features_values_range = self.get_features_ranges(dfs, features)
-        
+
         self.update_histogram_settings_based_on_features(features, features_values_range)
         logging.info(f"Settings updated: {self.histogram2d_settings}")
         fig: Figure = self.multiplot_settings.build_multiplots_figure(
@@ -265,7 +273,9 @@ class Orchestrator:
         logging.info("All plots saved")
         return None
 
-    def write_image_to_formats(self, fig, title: str, formats: list[str]=["pdf", "svg", "png"] ) -> None:
+    def write_image_to_formats(
+        self, fig, title: str, formats: list[str] = ["pdf", "svg", "png"]
+    ) -> None:
         """
         Write the image to the specified formats.
 
@@ -308,7 +318,9 @@ class Orchestrator:
         return None
 
     @classmethod
-    def get_features_ranges(cls, dfs: list[pd.DataFrame],  features: list[str] ):# -> dict[Any, Any]:
+    def get_features_ranges(
+        cls, dfs: list[pd.DataFrame], features: list[str]
+    ):  # -> dict[Any, Any]:
         """
         Get the range of values for each feature
 
@@ -325,7 +337,7 @@ class Orchestrator:
         """
         features_values_range = {}
         try:
-            for feature in features[:cls.MAX_FEATURE_COUNT]:
+            for feature in features[: cls.MAX_FEATURE_COUNT]:
                 max_value, min_value = cls.get_max_min_column_value(dfs, feature)
                 features_values_range[feature] = (max_value, min_value)
                 logging.debug(f"{feature} values range from {min_value} to {max_value}")
@@ -335,7 +347,7 @@ class Orchestrator:
 
         return features_values_range
 
-    def get_features(self, dfs, features = []):
+    def get_features(self, dfs, features=[]):
         """
         Get the features to be used in the analysis. If the features are not provided, the first two features of the first dataframe will be used.
 
@@ -353,7 +365,10 @@ class Orchestrator:
         if len(features) == 0:
             try:
                 # ensure it is a list of strings
-                features = [str(column) for column in dfs[0].columns.values[:self.MAX_FEATURE_COUNT].tolist()]
+                features = [
+                    str(column)
+                    for column in dfs[0].columns.values[: self.MAX_FEATURE_COUNT].tolist()
+                ]
             except:
                 error_message = "First Group Does not have at least two features"
                 logging.error(error_message)
@@ -366,5 +381,3 @@ class Orchestrator:
                     logging.error(error_message)
                     raise ValueError(error_message)
         return features
-
-    

@@ -35,7 +35,7 @@ class Histogram2DContourSettings(object):
     def create_histogram2dcontour(self, df: pd.DataFrame):
         if self.normalized:
             return self.create_frequency_histogram2dcontour(df)
-            
+
         else:
             return self.create_count_histogram2dcontour(df)
 
