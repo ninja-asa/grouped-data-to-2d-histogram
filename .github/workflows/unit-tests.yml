@@ -8,9 +8,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4.1.4
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5.1.0
       with:
         python-version: 3.8
     - name: Install dependencies
@@ -20,3 +20,15 @@ jobs:
         poetry install
     - name: Run tests
       run: poetry run pytest
+    - name: Check Coverage
+      run: poetry run coverage run -m pytest
+    - name: Python Coverage
+      uses: orgoro/coverage@v3.1
+      with:
+        # local path to a coverage xml file like the output of pytest --cov
+        coverageFile: "coverage.xml" 
+        # github token
+        token: ${{ secrets.GITHUB_TOKEN }}
+        # the coverage threshold for average over all files [0,1]
+        thresholdAll: 0.7
+            
