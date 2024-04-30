@@ -1,5 +1,10 @@
-from pytest import fixture
 import pandas as pd
+
+from pytest import fixture
+from unittest.mock import patch
+
+import os
+from datetime import datetime
 
 from src.orchestrator import Orchestrator
 
@@ -49,3 +54,41 @@ def test_cleanup_group_df(sample_orchestrator):
 
     # Assert column names are F1, and not A, B, C
     assert cleaned_df.columns.tolist() == ['F1']*3
+
+
+@patch('src.orchestrator.datetime')
+def test_prepare_outputs_folder(mock_datetime, sample_orchestrator):
+    # Call the prepare_outputs_folder method
+    datetime_now_value = datetime(2021, 1, 1, 12, 0, 0)
+    mock_datetime.now.return_value = datetime_now_value
+
+    outputs_folder = sample_orchestrator.prepare_outputs_folder()
+
+    # Assert that the outputs folder exists
+    assert os.path.exists(outputs_folder)
+
+    # Assert that the outputs folder is created with the correct name format
+    expected_folder_name = datetime_now_value.strftime("%Y-%m-%d_%H-%M-%S")
+    assert outputs_folder.endswith(expected_folder_name)
+
+    # Cleanup the folder
+    os.rmdir(outputs_folder)
+
+
+def test_is_group_column_name(sample_orchestrator):
+    # Test with a column name that contains "unnamed" substring
+    column_name = "Unnamed 1"
+    assert not sample_orchestrator.is_group_column_name(column_name)
+
+    # Test with a column name that does not contain "unnamed" substring
+    column_name = "A"
+    assert sample_orchestrator.is_group_column_name(column_name)
+
+    # Test with a column name that contains "unnamed" substring in different case
+    column_name = "UNNAMED : 2"
+    assert not sample_orchestrator.is_group_column_name(column_name)
+
+    # Test with a column name that contains "unnamed" substring as a part of another word
+    column_name = "unnamEd_3"
+    assert not sample_orchestrator.is_group_column_name(column_name)
+
