@@ -50,4 +50,5 @@ jobs:
         valColorRange: 80
         maxColorRange: 100
         minColorRange: 0
+        forceUpdate: true
                       
