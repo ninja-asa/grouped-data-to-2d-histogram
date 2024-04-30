@@ -34,4 +34,20 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         # the coverage threshold for average over all files [0,1]
         thresholdAll: 0.7
-            
+    - name: Dynamic Badges
+      uses: Schneegans/dynamic-badges-action@v1.7.0
+      with:
+        # Your secret with the gist scope
+        auth: ${{ secrets.GIST_SECRET }}
+        # The ID of the gist to use
+        gistID: 0a4e8c66088021da4280d4999bfc1acf
+        # The *.json or *.svg filename of the badge data
+        filename: grouped-data-to-2d-histogram-coverage.json
+        # The left text of the badge
+        label: Coverage
+        # The right text of the badge
+        message: 80 %
+        valColorRange: 80
+        maxColorRange: 100
+        minColorRange: 0
+                      
