@@ -2,6 +2,7 @@ import logging
 import os
 
 import pandas as pd
+from datetime import datetime
 
 from src.histogram2d import Histogram2DContourSettings
 from src.visualize import VisualizeSettings, Figure
@@ -32,8 +33,21 @@ class Orchestrator:
         else:
             # set the logging level to info
             logger.setLevel(logging.INFO)
+        self.output_folder = self.prepare_outputs_folder()
         return
 
+    def prepare_outputs_folder(self):
+        """
+        Prepare the outputs folder
+        """
+        outputs_folder = "outputs"
+        if not os.path.exists(outputs_folder):
+            os.makedirs(outputs_folder)
+        # get datetime now and create folder with that name, without milliseconds
+        outputs_folder = os.path.join(outputs_folder, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        os.makedirs(outputs_folder)           
+        return outputs_folder
+    
     @classmethod
     def get_groups_df(
         cls, df: pd.DataFrame
@@ -239,13 +253,13 @@ class Orchestrator:
         Returns:
             : _description_
         """
-
+        filename = os.path.join(self.output_folder, title)
         if "pdf" in formats:
-            fig.write_image(f"{title}.pdf")
+            fig.write_image(f"{filename}.pdf")
         if "svg" in formats:
-            fig.write_image(f"{title}.svg")
+            fig.write_image(f"{filename}.svg")
         if "png" in formats:
-            fig.write_image(f"{title}.png")
+            fig.write_image(f"{filename}.png")
         return None
 
     def update_histogram_settings_based_on_features(self, features, features_values_range) -> None:
