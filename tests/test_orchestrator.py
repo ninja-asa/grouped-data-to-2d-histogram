@@ -7,7 +7,6 @@ import tempfile
 import os
 from datetime import datetime
 
-from histogram2d import orchestrator
 from histogram2d.orchestrator import Orchestrator
 
 @fixture
@@ -108,6 +107,22 @@ def test_cleanup_group_df(sample_orchestrator):
 
     # Assert column names are F1, and not A, B, C
     assert cleaned_df.columns.tolist() == ['F1']*3
+
+def test_cleanup_group_df_with_nan_and_numeric_string(sample_orchestrator):
+    # Create a sample dataframe
+    data = {
+        'A': ["F1", "2", "3", "4", "5", None],
+    }
+    df = pd.DataFrame(data)
+
+    # Call the cleanup_group_df method
+    cleaned_df = sample_orchestrator.cleanup_group_df(df)
+
+    # Assert that the first row is removed
+    assert len(cleaned_df) == len(df) - 2
+
+    # Assert column names are F1, and not A, B, C
+    assert cleaned_df.columns.tolist() == ['F1']
 
 
 @patch('histogram2d.orchestrator.datetime')

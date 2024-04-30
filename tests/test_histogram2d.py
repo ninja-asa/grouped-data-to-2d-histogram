@@ -2,7 +2,7 @@ from unittest.mock import Mock, patch
 import pytest
 import pandas as pd
 from plotly.graph_objects import Histogram2dContour
-from histogram2d.histogram2d import Histogram2DContourSettings
+from histogram2d.builder import Histogram2DContourSettings
 
 @pytest.fixture()
 def sample_histogram_settings() -> Histogram2DContourSettings:
