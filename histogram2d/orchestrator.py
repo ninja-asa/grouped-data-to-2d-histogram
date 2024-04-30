@@ -3,9 +3,10 @@ import os
 
 import pandas as pd
 from datetime import datetime
+import numpy as np 
 
-from src.histogram2d import Histogram2DContourSettings
-from src.visualize import VisualizeSettings, Figure
+from histogram2d.histogram2d import Histogram2DContourSettings
+from histogram2d.visualize import VisualizeSettings, Figure
 logger = logging.getLogger(__name__)
 logging.basicConfig(
                     level=logging.INFO,
@@ -22,6 +23,7 @@ class Orchestrator:
         histogram2d_settings: Histogram2DContourSettings = Histogram2DContourSettings(),
         multiplot_settings: VisualizeSettings = VisualizeSettings(),
         debug: bool = False,
+        root_folder: str = ".",
     ) -> None:
         self.histogram2d_settings = histogram2d_settings
         self.multiplot_settings = multiplot_settings
@@ -33,19 +35,21 @@ class Orchestrator:
         else:
             # set the logging level to info
             logger.setLevel(logging.INFO)
-        self.output_folder = self.prepare_outputs_folder()
+        self.output_folder = self.prepare_outputs_folder(root_folder=root_folder)
         return
-
-    def prepare_outputs_folder(self):
+    
+    @staticmethod
+    def prepare_outputs_folder(root_folder):
         """
         Prepare the outputs folder
         """
-        outputs_folder = "outputs"
+        outputs_folder = os.path.join(root_folder, "outputs")
         if not os.path.exists(outputs_folder):
             os.makedirs(outputs_folder)
         # get datetime now and create folder with that name, without milliseconds
         outputs_folder = os.path.join(outputs_folder, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
-        os.makedirs(outputs_folder)           
+        if not os.path.exists(outputs_folder):
+            os.makedirs(outputs_folder)           
         return outputs_folder
     
     @classmethod
@@ -93,7 +97,10 @@ class Orchestrator:
         ]
         dfs_of_groups = []
         if len(group_column_names) == 0:
-            return [df], ""
+            logging.warning("No groups identified.")
+            logging.warning("Returning the dataframe as a single group")
+            return [df], [""]
+
         for idx_group, group in enumerate(group_column_names):
             first_colum_of_group = group[1]
             if idx_group == len(group_column_names) - 1:
@@ -137,36 +144,53 @@ class Orchestrator:
         """
         return not "unnamed" in column_name.lower()
 
+    @staticmethod
+    def is_data_file_valid(data_filepath: str) -> bool:
+        # check if file exists
+        if not os.path.exists(data_filepath):
+            logging.error(f"File {data_filepath} does not exist")
+            raise FileNotFoundError(f"File {data_filepath} does not exist")
+        # If file is either excel or csv continue to read
+        accepted_file_extensions = [".xlsx", ".xls", ".csv"]
+        if not any([data_filepath.endswith(extension) for extension in accepted_file_extensions]):
+            logging.error(f"File {data_filepath} is not an excel or csv file")
+            raise ValueError(f"File {data_filepath} is not an excel or csv file")
+        return True
+        
 
-    def read_data_from_excel(self, excel_filepath: str):
+    def read_data_from_file(self, data_filepath: str):
         """
-        Read data from excel file and return a list of dataframes
+        Read data from data file and return a list of dataframes
         
         Args:
-            excel_filepath (str): path to excel file
+            data_filepath (str): path to excel or csv file
             
         Returns:
             list[pd.DataFrame]: list of dataframes
             list[str]: list of group names
         """
-        # check if file exists
-        if not os.path.exists(excel_filepath):
-            logging.error(f"File {excel_filepath} does not exist")
-            raise FileNotFoundError(f"File {excel_filepath} does not exist")
+        self.is_data_file_valid(data_filepath)
+
+        if data_filepath.endswith(".csv"):
+            # set read function to pd.read_csv
+            read_function = pd.read_csv
+        else:
+            # set read function to pd.read_excel
+            read_function = pd.read_excel
         try:
-            df = pd.read_excel(excel_filepath)
+            df = read_function(data_filepath)
         except Exception as e:
             logging.error(f"Error reading excel file: {e}")
             raise e
         logging.debug(">>>>>RAW DATA>>>>>")
         logging.debug(df.head(6))
 
-        dfs, groups_name = self.get_groups_df(df)
+        data_of_groups, groups_name = self.get_groups_df(df)
         
-        for df, group_name in zip(dfs, groups_name):
+        for df, group_name in zip(data_of_groups, groups_name):
             logging.debug(f">>>>>>{group_name}>>>>>>")
             logging.debug(df.describe())
-        return dfs, groups_name
+        return data_of_groups, groups_name
 
     @staticmethod
     def get_max_min_column_value(dfs: list[pd.DataFrame], column_value: str):
@@ -180,7 +204,7 @@ class Orchestrator:
             min_value = min(min_value, df[column_value].min())
         return max_value, min_value
 
-    def update_settings_with_min_max_feature_1(self, max_feature_1: int, min_feature_1: int):
+    def update_settings_with_max_min_feature_1(self, max_feature_1: int, min_feature_1: int):
         """
         Update the settings with the min and max area
         """
@@ -194,7 +218,7 @@ class Orchestrator:
         self.histogram2d_settings.x_axis_title = x_axis_title
         self.histogram2d_settings.y_axis_title = y_axis_title
         
-    def update_settings_with_min_max_feature_2(self, max_feature_2, min_feature_2):
+    def update_settings_with_max_min_feature_2(self, max_feature_2, min_feature_2):
         """
         Update the settings with the min and max intensity
         """
@@ -214,16 +238,16 @@ class Orchestrator:
             ValueError: If the features do not exist in all dataframes
             ValueError: If the excel file does not have the expected format
         """
-        dfs , groups = self.read_data_from_excel(excel_filepath=excel_filepath)
+        dfs , groups = self.read_data_from_file(data_filepath=excel_filepath)
         if len(groups) == 0:
             logging.error("Did not obtain expected format of excel")
             raise ValueError("Did not obtain expected format of excel")
         logging.info(f"Groups identified: {groups}")
 
-        features = self.get_features(features, dfs)
+        features = self.get_features(dfs, features)
         logging.info(f"Features to be used: {features}")
 
-        features_values_range = self.get_features_ranges(features, dfs)
+        features_values_range = self.get_features_ranges(dfs, features)
         
         self.update_histogram_settings_based_on_features(features, features_values_range)
         logging.info(f"Settings updated: {self.histogram2d_settings}")
@@ -275,16 +299,16 @@ class Orchestrator:
                 }
         """
         self.update_xy_titles(features[0], features[1])
-        self.update_settings_with_min_max_feature_1(
+        self.update_settings_with_max_min_feature_1(
             features_values_range[features[0]][0], features_values_range[features[0]][1]
         )
-        self.update_settings_with_min_max_feature_2(
+        self.update_settings_with_max_min_feature_2(
             features_values_range[features[1]][0], features_values_range[features[1]][1]
         )
         return None
 
     @classmethod
-    def get_features_ranges(cls, features: list[str], dfs: list[pd.DataFrame]):# -> dict[Any, Any]:
+    def get_features_ranges(cls, dfs: list[pd.DataFrame],  features: list[str] ):# -> dict[Any, Any]:
         """
         Get the range of values for each feature
 
@@ -300,19 +324,24 @@ class Orchestrator:
                 }
         """
         features_values_range = {}
-        for feature in features[:cls.MAX_FEATURE_COUNT]:
-            max_value, min_value = cls.get_max_min_column_value(dfs, feature)
-            features_values_range[feature] = (max_value, min_value)
-            logging.debug(f"{feature} values range from {min_value} to {max_value}")
+        try:
+            for feature in features[:cls.MAX_FEATURE_COUNT]:
+                max_value, min_value = cls.get_max_min_column_value(dfs, feature)
+                features_values_range[feature] = (max_value, min_value)
+                logging.debug(f"{feature} values range from {min_value} to {max_value}")
+        except Exception as e:
+            logging.error(f"Error getting features ranges: {e}")
+            raise e
+
         return features_values_range
 
-    def get_features(self, features, dfs):
+    def get_features(self, dfs, features = []):
         """
         Get the features to be used in the analysis. If the features are not provided, the first two features of the first dataframe will be used.
 
         Args:
-            features (list[str]): column names in the dataframes. Can be provided as a empty list
             dfs (list[pd.Dataframe]): list of dataframes
+            features (list[str]): column names in the dataframes. Can be provided as a empty list
 
         Raises:
             ValueError: If the first dataframe does not have at least two features

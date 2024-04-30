@@ -1,6 +1,6 @@
-from src.orchestrator import Orchestrator
-from src.histogram2d import Histogram2DContourSettings
-from src.visualize import VisualizeSettings
+from histogram2d.orchestrator import Orchestrator
+from histogram2d.histogram2d import Histogram2DContourSettings
+from histogram2d.visualize import VisualizeSettings
 
 # CHANGE BELOW CONFIGURATIONS TO CUSTOMIZE THE VISUALIZATION
 excel_file = "data/dummy.xlsx" # "dummy.xlsx "# "AreavsIntensity.xlsx"

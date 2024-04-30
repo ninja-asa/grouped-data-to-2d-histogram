@@ -1,7 +1,7 @@
 from plotly.subplots import make_subplots
 from plotly.graph_objects import Figure
 import pandas as pd
-from src.histogram2d import Histogram2DContourSettings
+from histogram2d.histogram2d import Histogram2DContourSettings
 from dataclasses import dataclass
 
 

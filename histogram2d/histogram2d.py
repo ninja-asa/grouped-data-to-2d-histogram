@@ -35,6 +35,7 @@ class Histogram2DContourSettings(object):
     def create_histogram2dcontour(self, df: pd.DataFrame):
         if self.normalized:
             return self.create_frequency_histogram2dcontour(df)
+            
         else:
             return self.create_count_histogram2dcontour(df)
 
@@ -56,7 +57,7 @@ class Histogram2DContourSettings(object):
                 end=self.max_feature_2,
                 size=self.feature_2_bin_size,
             ),
-            colorbar=dict(title=self.get_z_colorbar_label(), ticksuffix="%"),
+            colorbar=dict(title=self.get_z_colorbar_label()),
         )
 
         return hist_data
