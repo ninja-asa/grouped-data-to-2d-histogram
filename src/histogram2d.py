@@ -5,14 +5,14 @@ import plotly.graph_objects as go
 
 @dataclass
 class Histogram2DContourSettings(object):
-    min_area: int = 0
-    max_area: int = 0
-    min_intensity: float = 0
-    max_intensity: float = 0
-    area_bin_size: int = 0
-    intensity_bin_size: float = 0
-    count_min: int = 0
-    count_max: int = 0
+    min_feature_1: int = 0
+    max_feature_1: int = 0
+    min_feature_2: float = 0
+    max_feature_2: float = 0
+    feature_1_bin_size: int = 0
+    feature_2_bin_size: float = 0
+    hist_colorbar_min: int = 0
+    hist_colorbar_max: int = 0
     colorscale: str = "greens"
     contours: dict = field(
         default_factory=lambda: {
@@ -20,8 +20,8 @@ class Histogram2DContourSettings(object):
             "labelfont": dict(family="Raleway", color="white"),
         }
     )
-    x_axis_title: str = "Area"
-    y_axis_title: str = "Intensity"
+    x_axis_title: str = "Feature 1"
+    y_axis_title: str = "Feature 2"
     contour_filling: str = "fill"
     contour_show_lines: bool = True
     normalized: bool = True
@@ -44,17 +44,17 @@ class Histogram2DContourSettings(object):
             y=df[self.y_axis_title],
             colorscale=self.colorscale,
             contours=self.contours,
-            zmin=self.count_min,
-            zmax=self.count_max,
+            zmin=self.hist_colorbar_min,
+            zmax=self.hist_colorbar_max,
             xbins=dict(
-                start=self.min_area - self.area_bin_size,
-                end=self.max_area,
-                size=self.area_bin_size,
+                start=self.min_feature_1 - self.feature_1_bin_size,
+                end=self.max_feature_1,
+                size=self.feature_1_bin_size,
             ),
             ybins=dict(
-                start=self.min_intensity - self.intensity_bin_size,
-                end=self.max_intensity,
-                size=self.intensity_bin_size,
+                start=self.min_feature_2 - self.feature_2_bin_size,
+                end=self.max_feature_2,
+                size=self.feature_2_bin_size,
             ),
             colorbar=dict(title=self.get_z_colorbar_label(), ticksuffix="%"),
         )
@@ -69,17 +69,17 @@ class Histogram2DContourSettings(object):
             colorscale=self.colorscale,
             contours=self.contours,
             histnorm="percent",
-            zmin=self.count_min,
-            zmax=self.count_max,
+            zmin=self.hist_colorbar_min,
+            zmax=self.hist_colorbar_max,
             xbins=dict(
-                start=self.min_area - self.area_bin_size,
-                end=self.max_area,
-                size=self.area_bin_size,
+                start=self.min_feature_1 - self.feature_1_bin_size,
+                end=self.max_feature_1,
+                size=self.feature_1_bin_size,
             ),
             ybins=dict(
-                start=self.min_intensity - self.intensity_bin_size,
-                end=self.max_intensity,
-                size=self.intensity_bin_size,
+                start=self.min_feature_2 - self.feature_2_bin_size,
+                end=self.max_feature_2,
+                size=self.feature_2_bin_size,
             ),
             colorbar=dict(title=self.get_z_colorbar_label(), ticksuffix="%"),
         )

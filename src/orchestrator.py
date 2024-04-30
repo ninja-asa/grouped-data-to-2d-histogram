@@ -1,10 +1,21 @@
+import logging
+import os
+
 import pandas as pd
 
 from src.histogram2d import Histogram2DContourSettings
 from src.visualize import VisualizeSettings, Figure
-
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+                    level=logging.INFO,
+                    format='%(filename)s: '    
+                            '%(levelname)s: '
+                            '%(funcName)s(): '
+                            '%(lineno)d:\t'
+                            '%(message)s')
 
 class Orchestrator:
+    MAX_FEATURE_COUNT = 2
     def __init__(
         self,
         histogram2d_settings: Histogram2DContourSettings = Histogram2DContourSettings(),
@@ -14,12 +25,51 @@ class Orchestrator:
         self.histogram2d_settings = histogram2d_settings
         self.multiplot_settings = multiplot_settings
         self.debug = debug
+        # Setup a logger which logs the current time, together with type of log, and set it to debug level
+        if self.debug:
+            # set the logging level to debug
+            logger.setLevel(logging.DEBUG)
+        else:
+            # set the logging level to info
+            logger.setLevel(logging.INFO)
         return
 
     @classmethod
     def get_groups_df(
         cls, df: pd.DataFrame
-    ):  # -> tuple[list[DataFrame], Literal['']] | tuple[list[Any], li...:# -> tuple[list[DataFrame], Literal['']] | tuple[list[Any], li...:# -> tuple[list[DataFrame], Literal['']] | tuple[list[Any], li...:# -> tuple[list[DataFrame], Literal['']] | tuple[list[Any], li...:
+    ):
+        """
+        Get the groups of the dataframe. The groups are identified by the merged cells in the excel file
+
+        Args:
+            df (pd.DataFrame): dataframe, where the groups are identified by the merged cells. Whenever 
+                there is a merged cell, pandas will set the first cell with the name of the group and the rest of the cells
+                will be named as "unnamed: x" where x is the index of the column
+
+        Returns:
+            list[pd.Dataframe]: list of dataframes, one per group
+            list[str]: list of group names
+        
+        Usage:
+            >>> df = pd.read_excel("path_to_excel_file")
+            >>> df.head(3)
+            output:
+            |  A  | Unnamed: 1 | Unnamed: 2 |  B  | Unnamed: 3 |
+            | --- | ---------- | ---------- | --- | ---------- |
+            |  F1 |        F2  |        F3  |  F1 |        F2  |
+            |  1  |        2.1 |        3.1 |  3  |        2.1 |
+            |  2  |        2.2 |        3.2 |  4  |        2.2 |
+            >>> dfs, groups = Orchestrator.get_groups_df(df)
+            >>> len(dfs)
+            2
+            >>> groups
+            ['A', 'B']
+            >>> dfs[0].head(1)
+            output:
+            |  F1 |  F2 |  F3 |
+            | --- | --- | --- |
+            |  1  | 2.1 | 3.1 |
+        """
 
         # get group names and index of those columns
         group_column_names = [
@@ -40,11 +90,25 @@ class Orchestrator:
             columns_of_group = df.columns[first_colum_of_group:last_column_of_group]
             # get the sub dataframe
             sub_df = df[columns_of_group]
-            # drop the first row - containing group names
-            sub_df = sub_df.drop([0])
+            # cleanup
+            sub_df = cls.cleanup_group_df(sub_df)
             # rename the columns
             dfs_of_groups.append(sub_df)
-        return dfs_of_groups, [group[0] for group in group_column_names]
+        group_names = [group[0] for group in group_column_names]
+        logging.debug(f"Grouped identified: {group_names}")
+        return dfs_of_groups, group_names
+
+    @staticmethod
+    def cleanup_group_df(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Cleanup the group dataframe by removing the first row and renaming the columns
+        """
+        # replace columns with the first row
+        df.columns = df.iloc[0]
+        # drop the first row
+
+        df = df.drop([0])
+        return df
 
     @staticmethod
     def is_group_column_name(column_name: str) -> bool:
@@ -59,72 +123,39 @@ class Orchestrator:
         """
         return not "unnamed" in column_name.lower()
 
-    def get_sub_df(self, df: pd.DataFrame, column_names, new_column_names):
+
+    def read_data_from_excel(self, excel_filepath: str):
         """
-        Get a partial df containing the specified columns. Rename those column. The NaN rows will be dropped as well
+        Read data from excel file and return a list of dataframes
+        
+        Args:
+            excel_filepath (str): path to excel file
+            
+        Returns:
+            list[pd.DataFrame]: list of dataframes
+            list[str]: list of group names
         """
-        sub_df: pd.DataFrame = df[column_names]
-        sub_df = sub_df.drop([0])
-        sub_df.rename(
-            columns={
-                column_names[0]: new_column_names[0],
-                column_names[1]: new_column_names[1],
-            },
-            inplace=True,
-        )
-        # set name of dataframe to be "test"
-        sub_df = sub_df.dropna()
-        return sub_df
+        # check if file exists
+        if not os.path.exists(excel_filepath):
+            logging.error(f"File {excel_filepath} does not exist")
+            raise FileNotFoundError(f"File {excel_filepath} does not exist")
+        try:
+            df = pd.read_excel(excel_filepath)
+        except Exception as e:
+            logging.error(f"Error reading excel file: {e}")
+            raise e
+        logging.debug(">>>>>RAW DATA>>>>>")
+        logging.debug(df.head(6))
 
-    def read_data_from_excel(self, excel_filepath: str) -> list[pd.DataFrame]:
-        df = pd.read_excel(excel_filepath)
-        if self.debug:
-            print(">>>>>RAW DATA>>>>>")
-            print(df.head(6))
+        dfs, groups_name = self.get_groups_df(df)
+        
+        for df, group_name in zip(dfs, groups_name):
+            logging.debug(f">>>>>>{group_name}>>>>>>")
+            logging.debug(df.describe())
+        return dfs, groups_name
 
-        new_columns_names = [
-            self.histogram2d_settings.x_axis_title,
-            self.histogram2d_settings.y_axis_title,
-        ]
-        # get the sub dataframes by
-        df_flat = self.get_sub_df(
-            df, ["Flat", "Unnamed: 1"], new_column_names=new_columns_names
-        )
-        df_1um = self.get_sub_df(
-            df, ["1 um", "Unnamed: 3"], new_column_names=new_columns_names
-        )
-        df_2um = self.get_sub_df(
-            df, ["2 um", "Unnamed: 5"], new_column_names=new_columns_names
-        )
-        df_3um = self.get_sub_df(
-            df, ["3 um", "Unnamed: 7"], new_column_names=new_columns_names
-        )
-        df_4um = self.get_sub_df(
-            df, ["4 um", "Unnamed: 9"], new_column_names=new_columns_names
-        )
-        df_5um = self.get_sub_df(
-            df, ["5 um", "Unnamed: 11"], new_column_names=new_columns_names
-        )
-
-        if self.debug:
-            print(">>>>>>FLAT>>>>>>")
-            print(df_flat.describe())
-            print(">>>>>>1 um>>>>>>")
-            print(df_1um.describe())
-            print(">>>>>>2 um>>>>>>")
-            print(df_2um.describe())
-            print(">>>>>>3 um>>>>>>")
-            print(df_3um.describe())
-            print(">>>>>>4 um>>>>>>")
-            print(df_4um.describe())
-            print(">>>>>>5 um>>>>>>")
-            print(df_5um.describe())
-
-        dfs = [df_flat, df_1um, df_2um, df_3um, df_4um, df_5um]
-
-        return dfs
-
-    def get_max_min_column_value(self, dfs: list[pd.DataFrame], column_value: str):
+    @staticmethod
+    def get_max_min_column_value(dfs: list[pd.DataFrame], column_value: str):
         """
         Get the max and min value of a column across all dataframes in selected column
         """
@@ -135,45 +166,162 @@ class Orchestrator:
             min_value = min(min_value, df[column_value].min())
         return max_value, min_value
 
-    def update_settings_with_min_max_area(self, max_area: int, min_area: int):
+    def update_settings_with_min_max_feature_1(self, max_feature_1: int, min_feature_1: int):
         """
         Update the settings with the min and max area
         """
-        self.histogram2d_settings.max_area = max_area
-        self.histogram2d_settings.min_area = min_area
+        self.histogram2d_settings.max_feature_1 = max_feature_1
+        self.histogram2d_settings.min_feature_1 = min_feature_1
 
-    def update_settings_with_min_max_intensity(self, max_intensity, min_intensity):
+    def update_xy_titles(self, x_axis_title: str, y_axis_title: str) -> None:
+        """
+        Update the settings with the x and y axis titles
+        """
+        self.histogram2d_settings.x_axis_title = x_axis_title
+        self.histogram2d_settings.y_axis_title = y_axis_title
+        
+    def update_settings_with_min_max_feature_2(self, max_feature_2, min_feature_2):
         """
         Update the settings with the min and max intensity
         """
-        self.histogram2d_settings.max_intensity = max_intensity
-        self.histogram2d_settings.min_intensity = min_intensity
+        self.histogram2d_settings.max_feature_2 = max_feature_2
+        self.histogram2d_settings.min_feature_2 = min_feature_2
 
-    def run(self, excel_filepath: str, titles: list[str]) -> None:
+    def run(self, excel_filepath: str, features: list[str] = []) -> None:
+        """
+        Run the orchestrator. Read the data from the excel file, get the groups, get the features, get the features values range, update the settings, create the plots and save them.add()
 
-        dfs = self.read_data_from_excel(excel_filepath=excel_filepath)
-        max_area, min_area = self.get_max_min_column_value(
-            dfs, self.histogram2d_settings.x_axis_title
-        )
-        max_intensity, min_intensity = self.get_max_min_column_value(
-            dfs, self.histogram2d_settings.y_axis_title
-        )
-        if self.debug:
-            print("Max area: ", max_area)
-            print("Min area: ", min_area)
-            print("Max intensity: ", max_intensity)
-            print("Min intensity: ", min_intensity)
+        Args:
+            excel_filepath (str): path to excel file
+            features (list[str], optional): features to be displayed. Defaults to [].
 
-        self.update_settings_with_min_max_area(max_area, min_area)
-        self.update_settings_with_min_max_intensity(max_intensity, min_intensity)
+        Raises:
+            ValueError: If the first dataframe does not have at least two features
+            ValueError: If the features do not exist in all dataframes
+            ValueError: If the excel file does not have the expected format
+        """
+        dfs , groups = self.read_data_from_excel(excel_filepath=excel_filepath)
+        if len(groups) == 0:
+            logging.error("Did not obtain expected format of excel")
+            raise ValueError("Did not obtain expected format of excel")
+        logging.info(f"Groups identified: {groups}")
 
+        features = self.get_features(features, dfs)
+        logging.info(f"Features to be used: {features}")
+
+        features_values_range = self.get_features_ranges(features, dfs)
+        
+        self.update_histogram_settings_based_on_features(features, features_values_range)
+        logging.info(f"Settings updated: {self.histogram2d_settings}")
         fig: Figure = self.multiplot_settings.build_multiplots_figure(
-            dataframes=dfs, titles=titles, settings_histogram=self.histogram2d_settings
+            dataframes=dfs, titles=groups, settings_histogram=self.histogram2d_settings
         )
-        fig.write_image("combined.pdf")
-
-        for df, title in zip(dfs, titles):
+        self.write_image_to_formats(fig, "combined")
+        logging.info("Combined plot saved")
+        for df, title in zip(dfs, groups):
             fig = self.multiplot_settings.build_individual_plot(
                 df=df, title=title, settings_histogram=self.histogram2d_settings
             )
+            self.write_image_to_formats(fig, title)
+            logging.info(f"Individual plot for {title} saved")
+        logging.info("All plots saved")
+        return None
+
+    def write_image_to_formats(self, fig, title: str, formats: list[str]=["pdf", "svg", "png"] ) -> None:
+        """
+        Write the image to the specified formats.
+
+        Args:
+            fig (plotly.graph_objects.Figure): figure to be saved
+            title (str): title of the file where the figure will be saved. If it contains the extension, it will be ignored
+            formats (list, optional): target extensions of file. Defaults to ["pdf", "svg", "png"]
+
+        Returns:
+            : _description_
+        """
+
+        if "pdf" in formats:
             fig.write_image(f"{title}.pdf")
+        if "svg" in formats:
+            fig.write_image(f"{title}.svg")
+        if "png" in formats:
+            fig.write_image(f"{title}.png")
+        return None
+
+    def update_histogram_settings_based_on_features(self, features, features_values_range) -> None:
+        """
+        Update the settings based on the features and their values range. Changes the attributes of the histogram2d_settings of this object
+
+        Args:
+            features (list[str]): list of features
+            features_values_range (dict): dictionary with the feature as key and the range of values as value. For example:
+                {
+                    "Area": (100, 200),
+                    "Intensity": (100, 200),
+                }
+        """
+        self.update_xy_titles(features[0], features[1])
+        self.update_settings_with_min_max_feature_1(
+            features_values_range[features[0]][0], features_values_range[features[0]][1]
+        )
+        self.update_settings_with_min_max_feature_2(
+            features_values_range[features[1]][0], features_values_range[features[1]][1]
+        )
+        return None
+
+    @classmethod
+    def get_features_ranges(cls, features: list[str], dfs: list[pd.DataFrame]):# -> dict[Any, Any]:
+        """
+        Get the range of values for each feature
+
+        Args:
+            features (list[str]): list of features. Should exist in each of the dataframes provided
+            dfs (list[pd.Dataframe]): list of dataframes
+
+        Returns:
+            dict: dictionary with the feature as key and the range of values as value. For example:
+                {
+                    "Area": (100, 200),
+                    "Intensity": (100, 200),
+                }
+        """
+        features_values_range = {}
+        for feature in features[:cls.MAX_FEATURE_COUNT]:
+            max_value, min_value = cls.get_max_min_column_value(dfs, feature)
+            features_values_range[feature] = (max_value, min_value)
+            logging.debug(f"{feature} values range from {min_value} to {max_value}")
+        return features_values_range
+
+    def get_features(self, features, dfs):
+        """
+        Get the features to be used in the analysis. If the features are not provided, the first two features of the first dataframe will be used.
+
+        Args:
+            features (list[str]): column names in the dataframes. Can be provided as a empty list
+            dfs (list[pd.Dataframe]): list of dataframes
+
+        Raises:
+            ValueError: If the first dataframe does not have at least two features
+            ValueError: If the features do not exist in all dataframes
+
+        Returns:
+            list[str]: list of features
+        """
+        if len(features) == 0:
+            try:
+                # ensure it is a list of strings
+                features = [str(column) for column in dfs[0].columns.values[:self.MAX_FEATURE_COUNT].tolist()]
+            except:
+                error_message = "First Group Does not have at least two features"
+                logging.error(error_message)
+                raise ValueError(error_message)
+        # check if features exist in all dataframes
+        for df in dfs:
+            for feature in features:
+                if feature not in df.columns:
+                    error_message = f"Feature {feature} does not exist in all dataframes. \n Dataframe has columns {df.columns}"
+                    logging.error(error_message)
+                    raise ValueError(error_message)
+        return features
+
+    

@@ -10,7 +10,7 @@ class VisualizeSettings(object):
     horizontal_spacing: float = 0.08
     vertical_spacing: float = 0.15
     fig_suplots_width: int = 1600
-    fig_subplot_height: int = 800
+    fig_subplot_height_per_row: int = 400
 
     def build_multiplots_figure(
         self,
@@ -18,63 +18,40 @@ class VisualizeSettings(object):
         titles: list[str],
         settings_histogram: Histogram2DContourSettings,
     ) -> Figure:
+        # for len of dataframes, create a subplot 3xn necessary to display all dataframes
+        numbers_cols = 3
+        numbers_rows = len(dataframes) // numbers_cols
+        if len(dataframes) % numbers_cols != 0:
+            numbers_rows += 1
+        specs = [[{"type": "histogram2dcontour"}] * numbers_cols] * numbers_rows
+        column_widths = [1, 1, 1]
+        row_heights = [1]*numbers_rows
 
         fig = make_subplots(
-            rows=2,
-            cols=3,
+            rows=numbers_rows,
+            cols=numbers_cols,
             subplot_titles=titles,
             horizontal_spacing=self.horizontal_spacing,
             vertical_spacing=self.vertical_spacing,
-            specs=[
-                [
-                    {"type": "histogram2dcontour"},
-                    {"type": "histogram2dcontour"},
-                    {"type": "histogram2dcontour"},
-                ],
-                [
-                    {"type": "histogram2dcontour"},
-                    {"type": "histogram2dcontour"},
-                    {"type": "histogram2dcontour"},
-                ],
-            ],
-            column_widths=[1, 1, 1],
-            row_heights=[1, 1],
+            specs=specs,
+            column_widths=column_widths,
+            row_heights=row_heights,
         )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(df=dataframes[0]), row=1, col=1
-        )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(
-                df=dataframes[1],
-            ),
-            row=1,
-            col=2,
-        )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(df=dataframes[2]), row=1, col=3
-        )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(df=dataframes[3]), row=2, col=1
-        )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(df=dataframes[4]), row=2, col=2
-        )
-
-        fig.add_trace(
-            settings_histogram.create_histogram2dcontour(df=dataframes[5]), row=2, col=3
-        )
+        for i, df in enumerate(dataframes):
+            row = i // numbers_cols + 1
+            col = i % numbers_cols + 1
+            fig.add_trace(
+                settings_histogram.create_histogram2dcontour(df=df),
+                row=row,
+                col=col,
+            )
 
         fig.update_traces(
             contours_coloring=settings_histogram.contour_filling,
             contours_showlines=settings_histogram.contour_show_lines,
         )
         # set size of plot
-        fig.update_layout(width=self.fig_suplots_width, height=self.fig_subplot_height)
+        fig.update_layout(width=self.fig_suplots_width, height=self.fig_subplot_height_per_row*numbers_rows)
         fig.update_xaxes(title_text=settings_histogram.x_axis_title)
         fig.update_yaxes(title_text=settings_histogram.y_axis_title)
 
@@ -94,7 +71,7 @@ class VisualizeSettings(object):
         )
 
         # set size of plot
-        fig.update_layout(width=self.fig_suplots_width, height=self.fig_subplot_height)
+        fig.update_layout(width=self.fig_suplots_width, height=self.fig_subplot_height_per_row)
         fig.update_xaxes(title_text=settings_histogram.x_axis_title)
         fig.update_yaxes(title_text=settings_histogram.y_axis_title)
 
