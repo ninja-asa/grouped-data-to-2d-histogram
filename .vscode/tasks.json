@@ -37,7 +37,7 @@
         {
             "label": "Run Formatting",
             "type": "shell",
-            "command": "poetry run black src",
+            "command": "poetry run black histogram2d",
         },
         {
             "label": "Run All",
