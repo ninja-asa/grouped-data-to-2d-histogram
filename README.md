@@ -14,7 +14,7 @@ This repository fulfills the simple purpose of generating 2D Histogram Contour p
 - Docker (optional) - in case you use Visual Studio Code devcontainer
 
 ## Getting Started
-### Overview of Usage
+### Usage
 1. Install dependencies, either using `pip` or `poetry`
 ```bash	
 # Using pip
