@@ -8,7 +8,7 @@
 This repository fulfills the simple purpose of generating 2D Histogram Contour plots (using [plotly](https://plotly.com/python/2d-histogram-contour/)) for a given grouped data.
 
 ## Pre-requisites
-- Python 3.8 or higher
+- Python 3.10 or higher
 - `pip` package manager or `poetry` package manager
 - Clone this repos
 - Docker (optional) - in case you use Visual Studio Code devcontainer
