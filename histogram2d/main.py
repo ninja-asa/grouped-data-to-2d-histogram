@@ -42,7 +42,7 @@ def main() -> None:
     runner = Orchestrator(
         histogram2d_settings=settings_histogram,
         multiplot_settings=settings_multiplot,
-        debug=True,
+        debug=DEBUG,
     )
     runner.run(excel_filepath=excel_file)
 
