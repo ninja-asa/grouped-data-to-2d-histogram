@@ -1,7 +1,7 @@
 # grouped-data-to-2d-histogram
 
 [![Run Tests](https://github.com/ninja-asa/grouped-data-to-2d-histogram/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/ninja-asa/grouped-data-to-2d-histogram/actions/workflows/unit-tests.yml) 
-![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ninja-asa/0a4e8c66088021da4280d4999bfc1acf/raw/97dbd248ee7de9bec54d9b80a63afe8be06a5b95/grouped-data-to-2d-histogram-coverage.json)
+![Coverage Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ninja-asa/0a4e8c66088021da4280d4999bfc1acf/raw/9a576308e48e47dd2aff4d04c3fefd70ddcd1ddf/grouped-data-to-2d-histogram-coverage.json)
 ![Black Badge](https://img.shields.io/badge/code%20style-black-000000.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -100,15 +100,15 @@ The `VisualizeSettings` object contains several options for customizing the mult
 ### Auto Configuration
 Config can be found in `samples/configAuto.py`.
 
-![Example Auto](samples/auto/#1.png)
+![Example Auto](samples/auto/combined.png)
 
 ### Manual Configuration - Normalized Scale
 Config can be found in `samples/configNormalized.py`.
 
-![Example Normalized](samples/normalized/#1.png)
+![Example Normalized](samples/normalized/combined.png)
 
 ### Manual Configuration - Count Scale
 
 Config can be found in `samples/configCount.py`.
 
-![Example Absolute](samples/count/#1.png)
+![Example Absolute](samples/count/combined.png)
