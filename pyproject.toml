@@ -47,8 +47,17 @@ exclude = '''
 
 [tool.coverage.run]
 source = ["histogram2d"]
-
 branch = true
+omit = [
+    "*/__init__.py",
+    "*/__main__.py",
+    "*/tests/*",
+    "*/test_*",
+    "*/setup.py",
+    "*/conftest.py",
+    "*/_version.py",
+    "*main.py"
+]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
