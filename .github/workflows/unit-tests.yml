@@ -26,7 +26,7 @@ jobs:
       run: | 
         poetry run coverage run -m pytest
         poetry run coverage xml
-        echo "COVERAGE_PERCENT=$(poetry run coverage report --format=total >> $GITHUB_ENV
+        echo "COVERAGE_PERCENT=$(poetry run coverage report --format=total | awk '{print $NF}' | tr -d '%')" >> $GITHUB_ENV
 
     - name: Python Coverage
       uses: orgoro/coverage@v3.1
