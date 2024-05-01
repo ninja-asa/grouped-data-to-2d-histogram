@@ -37,6 +37,8 @@ jobs:
 
     - name: Python Coverage
       uses: orgoro/coverage@v3.1
+      # only if pull request or push
+      if: github.event_name == 'pull_request'
       with:
         # local path to a coverage xml file like the output of pytest --cov
         coverageFile: "coverage.xml" 
